@@ -1,5 +1,5 @@
 const socket = io();
-
+let typingTimer;
 const clientsTotal = document.getElementById("client-total");
 const messageContainer = document.getElementById("message-container");
 const messageInput = document.getElementById("message-input");
@@ -32,6 +32,7 @@ socket.on("chat-message", (data) => {
 });
 
 function addMessageToFront(ownerMessage, data) {
+  clearTyping();
   const element = `
     <li class=${ownerMessage ? "message-right" : "message-left"}>
           <p class="message">
@@ -43,10 +44,29 @@ function addMessageToFront(ownerMessage, data) {
   messageContainer.innerHTML += element;
 }
 
-messageInput.addEventListener("keypress", (event) => {
+messageInput.addEventListener("keydown", (event) => {
+  console.log(event.key);
+  if (event.key === "Backspace") {
+    clearTimeout(typingTimer);
+    socket.emit("typing", {
+      typing: `${nameInput.value} در حال تایپ کردن`,
+    });
+    typingTimer = setTimeout(() => {
+      socket.emit("typing", {
+        typing: "", // پاک کردن پیام تایپ
+      });
+    }, 5000);
+    return;
+  }
+  clearTimeout(typingTimer);
   socket.emit("typing", {
     typing: `${nameInput.value} در حال تایپ کردن`,
   });
+  typingTimer = setTimeout(() => {
+    socket.emit("typing", {
+      typing: "", // پاک کردن پیام تایپ
+    });
+  }, 5000);
 });
 
 messageInput.addEventListener("blur", (event) => {
@@ -67,6 +87,7 @@ socket.on("typing", (data) => {
 });
 
 function clearTyping() {
+  clearTimeout(typingTimer);
   document.querySelectorAll("li.message-feedback").forEach((element) => {
     element.parentNode.removeChild(element);
   });
